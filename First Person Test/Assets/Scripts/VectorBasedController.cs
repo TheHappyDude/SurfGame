@@ -16,8 +16,9 @@ public class VectorBasedController : MonoBehaviour {
 	public float flyControl = 4;
 	private float downVelocity = 0;
 	private float rampAngle = 0;
-	private Vector3 playerDirection = Vector3.zero;
-	private Vector3 rampDirection = Vector3.zero;
+	//private Vector3 playerDirection = Vector3.zero;
+	//private Vector3 rampDirection = Vector3.zero;
+    Collider coll;
 
 	void Awake () {
 		GetComponent<Rigidbody>().freezeRotation = true;
@@ -26,8 +27,9 @@ public class VectorBasedController : MonoBehaviour {
 
 	void FixedUpdate () {
 		// Get player direction. Ramp direction is handled in collision
-		playerDirection = transform.forward;
+		//playerDirection = transform.forward;
 
+        checkCollision();
 
 		// Calculate how fast we should be moving
 		Vector3 targetVelocity = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
@@ -48,24 +50,41 @@ public class VectorBasedController : MonoBehaviour {
 			GetComponent<Rigidbody> ().AddForce (velocityChange, ForceMode.VelocityChange);
 			GetComponent<Rigidbody>().AddForce (new Vector3 (0, downVelocity * GetComponent<Rigidbody>().mass, 0));			// Gravity
 			// Jump
-			if (canJump && Input.GetButton ("Jump")) {
+			if (canJump && Input.GetButton ("Jump") && Mathf.Approximately(rampAngle, 0)) {
 				GetComponent<Rigidbody> ().velocity = new Vector3 (velocity.x, CalculateJumpVerticalSpeed (), velocity.z);
 			}
+
 		} else {
 			downVelocity = 0;
+            GetComponent<Rigidbody>().drag = 0;
 			// Make direction control harder if not grounded
 			GetComponent<Rigidbody>().AddForce (velocityChange / flyControl, ForceMode.VelocityChange);
 			GetComponent<Rigidbody>().AddForce (new Vector3 (0, -gravityLo * GetComponent<Rigidbody>().mass, 0));			// Gravity
 		}
-
 		grounded = false;
 	}
+
+    bool checkCollision ()
+    {
+        return Physics.Raycast(transform.position, Vector3.down, .5f);
+    }
 
 	void OnCollisionStay (Collision collisionInfo) {
 		grounded = true;    
 		rampAngle = collisionInfo.transform.rotation.z;
-		rampDirection = collisionInfo.transform.eulerAngles;
-		Debug.Log (rampDirection);
+        if (!collisionInfo.collider.tag.Equals("Respawn"))
+        {
+            canJump = false;
+        } else
+        {
+            canJump = true;
+        }
+        if (collisionInfo.collider.tag.Equals("Finish"))
+        {
+            canJump = true;
+        }
+        Debug.Log(canJump);
+		//rampDirection = collisionInfo.transform.eulerAngles;
 	}
 
 	float CalculateJumpVerticalSpeed () {
